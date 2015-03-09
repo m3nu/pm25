@@ -1,5 +1,3 @@
-sklearn
-bottle
 pandas
 statsmodels
 patsy
@@ -24,4 +22,4 @@ xlrd
 mistune
 pulp
 pymongo
-memcache
+python-memcached

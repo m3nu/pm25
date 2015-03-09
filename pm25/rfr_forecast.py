@@ -1,4 +1,6 @@
-from sqlobject import AND
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import math
 import os
 import pickle
@@ -6,14 +8,19 @@ import json
 from bson import json_util
 import pandas as pd
 import sqlobject
+from sqlobject import AND
 from datetime import datetime as dt, timedelta
 import memcache
 import time
+import logging
 
 from pm25.db_config import DB_CONFIG
 from pm25.db_config import PM25Observation as pm_db
 from pm25.db_config import WundergroundForecast as fcs_db
 
+# Setup logging
+FORMAT = "%(asctime)s %(module)s %(message)s"
+logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 ## Helper functions
 def wdird_to_direction(inp):
@@ -57,6 +64,8 @@ def is_holiday(date):
 
 def features_as_df(AREA = u'北京', FC_DATETIME = dt(2015, 2, 17, 13)):
     "Pull pollution and climate data from various DBs."
+
+    logging.info('Pulling data from database.')
 
     ## Pull all pollution stations for an area
     sqlobject.sqlhub.processConnection = sqlobject.postgres.builder()(db='pm25', **DB_CONFIG)
@@ -142,16 +151,16 @@ def build_save_models(piv, df_pm, hours=12):
     # rmse = math.sqrt(metrics.mean_squared_error(y_test, model.predict(X_test)))
     # r2 = metrics.r2_score(y_test, model.predict(X_test))
 
-    if not os.path.exists('models'):
-        os.makedirs('models')
+    if not os.path.exists('/tmp/models'):
+        os.makedirs('/tmp/models')
     
-    f = open('models/rtr_%s.pkl' % hours, 'w')
+    f = open('/tmp/models/rtr_%s.pkl' % hours, 'w')
     f.write(pickle.dumps(rfr))
     f.close()
 
 def forecast_hour(features, offset):
     "Forecast single hour based on offset (t+offset), given features at time t."
-    f = open('models/rtr_%s.pkl' % offset).read()
+    f = open('/tmp/models/rtr_%s.pkl' % offset).read()
     model = pickle.loads(f)
     return features.name, features.name + timedelta(hours=offset), model.predict(features)[0]
 
@@ -163,6 +172,7 @@ def build_forecast_json(features, df_pm, ci=15):
                  'fc_datetime': features.name.to_datetime(),
                  'length_forecasts': 24,
                  'length_observed': 45,
+                 'generated': dt.now(),
                  'forecasts': [],
                  'observed': []
                 }
@@ -184,14 +194,17 @@ def build_forecast_json(features, df_pm, ci=15):
     
 if __name__ == '__main__':
     while True: #poor man's daemon
+        logging.info('Starting scheduler.')
         df_piv, df_pm = features_as_df()
         for h in range(1, 25):
             build_save_models(df_piv, df_pm, h) #TODO rebuild models each hour?
+            logging.info('Build classifier for hour %i.' % h)
 
         pred_json = build_forecast_json(df_piv.ix[-1], df_pm)
 
         mc = memcache.Client(['127.0.0.1:11211'])
         mc.set('/forecast/beijing.json', json.dumps(pred_json, default=json_util.default))
+        logging.info('Saved json.')
 
         time.sleep(60*60)
         

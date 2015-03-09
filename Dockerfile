@@ -1,11 +1,7 @@
 FROM python:2
 MAINTAINER manu@snapdragon.cc
 
-# export IMAGE_NAME=pyquasar:dev
-# export PROJECT_DIR=/opt/dev/pyquasar
-
-# cd $PROJECT_DIR
-# docker build --no-cache=false -t e .
+VOLUME ["/opt/pm25"]
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -20,8 +16,6 @@ RUN apt-get update && apt-get install -y vim less net-tools inetutils-ping curl 
 
 ADD ./requirements.txt /tmp/requirements.txt
 RUN pip install -U -r /tmp/requirements.txt
-
-ADD pm25 /opt/
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
