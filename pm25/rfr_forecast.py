@@ -1,8 +1,14 @@
 from sqlobject import AND
 import math
+import os
 import pickle
 import json
 from bson import json_util
+import pandas as pd
+import sqlobject
+from datetime import datetime as dt, timedelta
+import memcache
+import time
 
 from pm25.db_config import DB_CONFIG
 from pm25.db_config import PM25Observation as pm_db
@@ -10,12 +16,6 @@ from pm25.db_config import WundergroundForecast as fcs_db
 
 
 ## Helper functions
-
-def do_pca(comp):
-    pca = sklearn.decomposition.PCA(n_components=comp).fit(X)
-    X_pcaed = pca.transform(X)
-    return pca.explained_variance_ratio_.sum()
-
 def wdird_to_direction(inp):
     return math.sin(inp*2*math.pi/360)
 
@@ -47,6 +47,7 @@ def get_sunhours(date, lon=116.4166666667, lat=39.91666666667):
     return diff.total_seconds() / 3600.
 
 def is_holiday(date):
+    "Simple function to set working days. TODO: use real calendar."
     if date.isoweekday() == 6:
         return 0.5
     elif date.isoweekday() == 7:
@@ -55,6 +56,7 @@ def is_holiday(date):
         return 1
 
 def features_as_df(AREA = u'北京', FC_DATETIME = dt(2015, 2, 17, 13)):
+    "Pull pollution and climate data from various DBs."
 
     ## Pull all pollution stations for an area
     sqlobject.sqlhub.processConnection = sqlobject.postgres.builder()(db='pm25', **DB_CONFIG)
@@ -117,6 +119,8 @@ def features_as_df(AREA = u'北京', FC_DATETIME = dt(2015, 2, 17, 13)):
 
 
 def build_save_models(piv, df_pm, hours=12):
+    "Use existing data and pollution outcome to train ML."
+
     ## Calculated rows (daylight, working day, sin-hour)
     y = df_pm.groupby('time_point').mean().pm2_5.shift(hours).dropna()
     common_ix = y.index.intersection(piv.dropna().index)
@@ -124,36 +128,37 @@ def build_save_models(piv, df_pm, hours=12):
     y = y.loc[common_ix]
 
     # Cross-validation
-    from sklearn import cross_validation
-
-    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-        X, y, test_size=0.01, random_state=0)
+    # from sklearn import cross_validation
+    # X_train, X_test, y_train, y_test = cross_validation.train_test_split(
+    #     X, y, test_size=0.01, random_state=0)
 
     # RFR model
     from sklearn import ensemble
-    rfr = ensemble.RandomForestRegressor(max_depth=4).fit(X_train, y_train)
+    rfr = ensemble.RandomForestRegressor(max_depth=4).fit(X, y)
 
-    from sklearn import metrics
+    # from sklearn import metrics
+    # model = rfr
+    # mae = metrics.mean_absolute_error(y_test, model.predict(X_test))
+    # rmse = math.sqrt(metrics.mean_squared_error(y_test, model.predict(X_test)))
+    # r2 = metrics.r2_score(y_test, model.predict(X_test))
 
-    model = rfr
-    # plt.scatter(model.predict(X_test), y_test)
-    mae = metrics.mean_absolute_error(y_test, model.predict(X_test))
-    rmse = math.sqrt(metrics.mean_squared_error(y_test, model.predict(X_test)))
-    r2 = metrics.r2_score(y_test, model.predict(X_test))
-    print mae, rmse, r2
+    if not os.path.exists('models'):
+        os.makedirs('models')
     
     f = open('models/rtr_%s.pkl' % hours, 'w')
     f.write(pickle.dumps(rfr))
     f.close()
 
 def forecast_hour(features, offset):
+    "Forecast single hour based on offset (t+offset), given features at time t."
     f = open('models/rtr_%s.pkl' % offset).read()
     model = pickle.loads(f)
     return features.name, features.name + timedelta(hours=offset), model.predict(features)[0]
 
 def build_forecast_json(features, df_pm, ci=15):
+    "Package observed values and forecast values in json."
+
     preds = [forecast_hour(features, h) for h in range(1, 25)]
-    preds_series = pd.Series(data=[x[2] for x in preds], index=[i[1] for i in preds])
     pred_json = {
                  'fc_datetime': features.name.to_datetime(),
                  'length_forecasts': 24,
@@ -167,9 +172,6 @@ def build_forecast_json(features, df_pm, ci=15):
                                'datetime': p[1].to_datetime(),
                               } for p in preds]
     observed_index = pd.date_range(end=features.name, periods=48, freq='h')
-#     pm_grouped = df_pm.ix[observed_index].groupby('time_point')
-#     _min, _avg, _max = pm_grouped.min().pm2_5, pm_grouped.mean().pm2_5, pm_grouped.max().pm2_5
-#     pm_observed = pd.DataFrame({'min':_min, 'avg': _avg, 'max': _max}, index = observed_index)
     pm_observed = df_pm.ix[observed_index].groupby('time_point').pm2_5.quantile([0.2, 0.5, 0.8])
     pred_json['observed'] = [{'min': pm_observed[(h, 0.2)],
                                'max': pm_observed[(h, 0.8)],
@@ -180,13 +182,16 @@ def build_forecast_json(features, df_pm, ci=15):
     return pred_json
 
     
-    
-# if __name__ == '__main__':
-#     df_piv, df_pm = features_as_df()
-#     for h in range(1, 25):
-#         build_save_models(df_piv, df_pm, h)
+if __name__ == '__main__':
+    while True: #poor man's daemon
+        df_piv, df_pm = features_as_df()
+        for h in range(1, 25):
+            build_save_models(df_piv, df_pm, h) #TODO rebuild models each hour?
 
-pred_json = build_forecast_json(df_piv.ix[-1], df_pm)
-f = open('testfile.json', 'w')
-f.write(json.dumps(pred_json, default=json_util.default))
-f.close()
+        pred_json = build_forecast_json(df_piv.ix[-1], df_pm)
+
+        mc = memcache.Client(['127.0.0.1:11211'])
+        mc.set('/forecast/beijing.json', json.dumps(pred_json, default=json_util.default))
+
+        time.sleep(60*60)
+        
