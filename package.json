@@ -1,0 +1,49 @@
+{
+  "name": "hapi-boilerplate",
+  "version": "0.0.4",
+  "description": "This is what JS looks like",
+  "main": "app.js",
+  "author": "Fotoverite <matt@novafavrica.com>",
+  "license": "ISC",
+  "keywords": [
+    "hapi",
+    "node",
+    "boilerplate"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fotoverite/thisiswhatjslookslike"
+  },
+  "bugs": {
+    "url": "https://github.com/Fotoverite/thisiswhatjslookslike/issues"
+  },
+  "dependencies": {
+    "bcrypt": "^0.8.1",
+    "boom": "^2.6.1",
+    "config": "^1.8.1",
+    "good": "^5.1.1",
+    "good-console": "^2.1.0",
+    "hapi": "^8.1.0",
+    "hapi-assets": "~0.3.0",
+    "hapi-auth-basic": "x",
+    "hapi-cache-buster": "~0.3.0",
+    "hapi-named-routes": "~0.3.0",
+    "joi": "^5.1.0",
+    "require-directory": "^2.0.0",
+    "swig": "~1.4.2"
+  },
+  "devDependencies": {
+    "lab": "^4.7.0",
+    "sqlite3": "^3.0.2",
+    "gulp": "~3.8.7",
+    "gulp-concat": "~2.3.4",
+    "gulp-imagemin": "~1.0.1",
+    "gulp-minify-css": "~0.3.7",
+    "gulp-uglify": "~1.0.0",
+    "gulp-util": "~3.0.1"
+  },
+  "homepage": "https://github.com/Fotoverite/thisiswhatjslookslike",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

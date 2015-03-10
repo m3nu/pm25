@@ -1,0 +1,7 @@
+{% block head %}
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    {% for item in assets.css %}
+        <link rel="stylesheet" href="{{item}}{{version.cache}}"/>
+        <link href='http://fonts.googleapis.com/css?family=Six+Caps' rel='stylesheet' type='text/css'>
+    {% endfor %}
+{% endblock %}

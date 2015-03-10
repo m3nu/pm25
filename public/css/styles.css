@@ -1,0 +1,55 @@
+body{
+  background-color:#1d1d1d;
+  color:white;
+  font-family: 'Six Caps', sans-serif;
+}
+
+h1 {
+  text-align: center;
+  font-size: 90px;
+  margin:25px;
+}
+
+p {
+  font-family: "Times New Roman", Georgia, Serif;
+  font-size:20px;
+}
+#header {
+  position: relative;
+  background-color:#303030
+}
+
+#logo {
+  height:100px;
+}
+
+#menu {
+  right:10px;
+  bottom: 10px;
+  position: absolute;
+  list-style: none;
+}
+
+#menu li a{
+  float:left;
+  color:white;
+  font-size:30px;
+  margin-right:10px;
+  text-decoration: none;
+}
+
+.button {
+  display:block;
+  height:30px;
+  width:200px;
+  background:white;
+  border: 1px solid black;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.portrait {
+  width:1000px;
+  margin: auto;
+  display: block;
+}

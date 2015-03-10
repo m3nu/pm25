@@ -1,0 +1,83 @@
+{% extends './layouts/default.html' %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block content %}
+    <h1>北京PM2.5预测</h1>
+
+    <p>螷蟞覮 皵碡碙 獿譿躐 滍 葋蒎, 歶緟蔤 瑍痸碚 幋 嫳嫬, 鼥儴壛 闟顣飁 耖茭 煻 瘱瘵瘲 秎穾籺 鈁陾靰 滈 翣聜 娭屔 雈靮傿 雥齆犪 溗煂獂 緦, 腶 樧槧樈 藽轚酁 蚡袀 舝 鶭黮 醑醏錛 笓粊紒, 踙 蔰蝯蝺 烳牼翐 逜郰傃 岈岋 幋 斔櫅檷 粞絧絏 餳駷, 溔 谾踘 胾臷菨 蝪蝩覤 薠薞薘</p>
+    <br />
+
+    <div id="chart_div" style="width: auto; height: 700px;">></div>
+
+<script type="text/javascript">
+
+  // Load the Visualization API and the piechart package.
+  google.load('visualization', '1.0', {'packages':['corechart']});
+
+  // Set a callback to run when the Google Visualization API is loaded.
+  google.setOnLoadCallback(drawChart);
+
+  // Callback that creates and populates a data table,
+  // instantiates the pie chart, passes in the data and
+  // draws it.
+  function drawChart() {
+
+    // Create the data table.
+    var data = new google.visualization.DataTable();
+    data.addColumn('datetime', 'datetime');
+    data.addColumn('number', 'avg');
+    data.addColumn( {id: 'max', type: 'number', role:'interval'});
+    data.addColumn( {id: 'min', type: 'number', role:'interval'});
+
+    var observed = [];
+    var forecasts = [];
+    parsedJson = {%autoescape false %}{{ json }} {%endautoescape%};
+    for (i = 0; i < parsedJson.observed.length; i++) {
+      var row = parsedJson.observed[i];
+      observed.push([
+        new Date(row.datetime.$date),
+        Math.round(row.avg),
+        Math.round(row.max),
+        Math.round(row.min)
+      ])
+    }
+
+    for (i = 0; i < parsedJson.forecasts.length; i++) {
+      var row = parsedJson.forecasts[i];
+      forecasts.push([
+        new Date(row.datetime.$date),
+         Math.round(row.avg),
+         Math.round(row.max),
+         Math.round(row.min)
+         ]
+        )
+    }
+
+
+    data.addRows(observed);
+    data.addRows(forecasts);
+    // Set chart options
+    var options = {
+        title:'Area, default',
+        curveType:'function',
+        series: [{'color': '#F1754A'}],
+        intervals: { 'style':'area' },
+        legend: 'none',
+        hAxis: {
+          format: 'dd-MM HH:mm'
+        }
+      }
+;
+
+    // Instantiate and draw our chart, passing in some options.
+    var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+
+    var formatter_short = new google.visualization.DateFormat({formatType: 'long'});
+
+    chart.draw(data, options);
+  }
+</script>
+
+{% endblock %}
+

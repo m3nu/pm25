@@ -1,0 +1,10 @@
+{
+	"port":3001,
+  "database" : {
+    "username": "postgres",
+    "password": "",
+    "database": "thisiswhatjslookslike_development",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}
