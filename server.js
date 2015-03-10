@@ -5,7 +5,7 @@ var Bcrypt = require('bcrypt');
 
 var path = require('path');
 
-var settings = require('config');
+var settings = require('./config/default');
 
 var routes = require('./server/routes');
 var plugins = require('./plugins');
