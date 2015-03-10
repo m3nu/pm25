@@ -3,7 +3,7 @@
 <html lang="en" ng-app="myApp">
 <head>
     <meta charset="UTF-8">
-    <title>北京PM2.5预测 Super Informative About Page</title>
+    <title>北京PM2.5预测</title>
 
     
     <script type="text/javascript" src="https://www.google.com/jsapi"></script>
@@ -25,9 +25,6 @@
     </div>
     
     <h1>北京PM2.5预测</h1>
-
-    <p>螷蟞覮 皵碡碙 獿譿躐 滍 葋蒎, 歶緟蔤 瑍痸碚 幋 嫳嫬, 鼥儴壛 闟顣飁 耖茭 煻 瘱瘵瘲 秎穾籺 鈁陾靰 滈 翣聜 娭屔 雈靮傿 雥齆犪 溗煂獂 緦, 腶 樧槧樈 藽轚酁 蚡袀 舝 鶭黮 醑醏錛 笓粊紒, 踙 蔰蝯蝺 烳牼翐 逜郰傃 岈岋 幋 斔櫅檷 粞絧絏 餳駷, 溔 谾踘 胾臷菨 蝪蝩覤 薠薞薘</p>
-    <br />
 
     <div id="chart_div" style="width: auto; height: 700px;">></div>
 
@@ -54,18 +51,25 @@ var getJSON = function(url, successHandler, errorHandler) {
   xhr.send();
 };
 
-var parsedJson = [];
-getJSON('/forecast/beijing.json', function(data) {
-  parsedJson = data;
-}, function(status) {
-  alert('Something went wrong.');
-});
+
+
 
   // Load the Visualization API and the piechart package.
   google.load('visualization', '1.0', {'packages':['corechart']});
 
   // Set a callback to run when the Google Visualization API is loaded.
-  google.setOnLoadCallback(drawChart);
+  google.setOnLoadCallback(loadChart);
+
+var parsedJson = [];
+function loadChart() {
+    getJSON('/forecast/beijing.json', function(data) {
+      parsedJson = data;
+      console.log(parsedJson);
+      drawChart()
+    }, function(status) {
+      alert('Something went wrong.');
+    });
+  }
 
   // Callback that creates and populates a data table,
   // instantiates the pie chart, passes in the data and
@@ -81,7 +85,6 @@ getJSON('/forecast/beijing.json', function(data) {
 
     var observed = [];
     var forecasts = [];
-    
 
     for (i = 0; i < parsedJson.observed.length; i++) {
       var row = parsedJson.observed[i];
@@ -115,7 +118,7 @@ getJSON('/forecast/beijing.json', function(data) {
         intervals: { 'style':'area' },
         legend: 'none',
         hAxis: {
-          format: 'dd-MM HH:mm'
+          format: 'dd-MMM HH:mm'
         }
       }
 ;
