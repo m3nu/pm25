@@ -170,8 +170,8 @@ def build_forecast_json(features, df_pm, ci=15):
     preds = [forecast_hour(features, h) for h in range(1, 25)]
     pred_json = {
                  'fc_datetime': features.name.to_datetime(),
-                 'length_forecasts': 24,
-                 'length_observed': 45,
+                 'length_forecasts': None,
+                 'length_observed': None,
                  'generated': dt.now(),
                  'forecasts': [],
                  'observed': []
@@ -181,6 +181,7 @@ def build_forecast_json(features, df_pm, ci=15):
                                'avg': p[2],
                                'datetime': p[1].to_datetime(),
                               } for p in preds]
+    pred_json['length_forecasts'] = len(pred_json['forecasts'])
     observed_index = pd.date_range(end=features.name, periods=48, freq='h')
     pm_observed = df_pm.ix[observed_index].groupby('time_point').pm2_5.quantile([0.2, 0.5, 0.8])
     pred_json['observed'] = [{'min': pm_observed[(h, 0.2)],
@@ -188,6 +189,7 @@ def build_forecast_json(features, df_pm, ci=15):
                                'avg': pm_observed[(h, 0.5)],
                                'datetime': h,
                               } for h in pm_observed.index.levels[0]]
+    pred_json['length_observed'] = len(pred_json['observed'])
     
     return pred_json
 
